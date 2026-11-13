@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState } from "react";
 import api from "../services/api";
 
@@ -8,13 +7,8 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     try {
       const savedUser = localStorage.getItem("user");
-
-      if (!savedUser || savedUser === "undefined") {
-        return null;
-      }
-
-      return JSON.parse(savedUser);
-    } catch (error) {
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch {
       localStorage.removeItem("user");
       return null;
     }
@@ -22,37 +16,35 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const response = await api.post("/auth/login", {
-      email,
-      password
+      email: email.trim().toLowerCase(),
+      password,
     });
 
-    const userData = response.data.user;
-    const token = response.data.token;
+    const { user, token } = response.data;
 
-    if (!userData || !token) {
-      throw new Error("Invalid login response from server");
+    if (!user || !token) {
+      throw new Error("Invalid login response");
     }
 
     localStorage.setItem("token", token);
-    localStorage.setItem("user", JSON.stringify(userData));
+    localStorage.setItem("user", JSON.stringify(user));
 
-    setUser(userData);
+    setUser(user);
 
     return response.data;
   };
 
   const register = async (name, email, password) => {
-    return api.post("/auth/register", {
-      name,
-      email,
-      password
+    return await api.post("/auth/register", {
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      password,
     });
   };
 
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-
     setUser(null);
   };
 
